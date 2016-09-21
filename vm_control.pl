@@ -47,10 +47,11 @@ sub enable_unit {
 #create systemd units for each user monitored
 #@param user: start/stop vagrant boxes of this user
 sub create_units {
+	my $vm_user = @_;
 	my $sys_dir = '/etc/systemd/system/';
-	my $start_file = "start_$user" ."_VM.service";
+	my $start_file = "start_$vm_user" ."_VM.service";
 
-	print "creating systemd unit for $user VM startup\n";
+	print "creating systemd unit for $vm_user VM startup\n";
 
 	open(my $START_FILE, '>', "$sys_dir" ."$start_file")
 	 or die "could not open $sys_dir" ."$start_file: $!\n";
@@ -61,7 +62,7 @@ sub create_units {
 	print $START_FILE "After=network.target\n";
 	print $START_FILE "\n";
 	print $START_FILE "[Service]\n";
-	print $START_FILE "User=$user\n";
+	print $START_FILE "User=$vm_user\n";
 	print $START_FILE "Type=forking\n";
 	print $START_FILE "RemainAfterExit=yes\n";
 	print $START_FILE "ExecStart=/usr/local/bin/vm_conrol.pl start $user\n";
@@ -72,8 +73,8 @@ sub create_units {
 
 	&enable_unit($start_file);
 
-	my $stop_file = "stop_$user" ."_VM.service";
-	print "creating systemd unit for $user VM stop\n";
+	my $stop_file = "stop_$vm_user" ."_VM.service";
+	print "creating systemd unit for $vm_user VM stop\n";
 
 	open(my $STOP_FILE, '>', "$sys_dir" ."$stop_file")
 	 or die "could not open $sys_dir" ."$stop_file: $!\n";
@@ -84,10 +85,10 @@ sub create_units {
 	print $STOP_FILE "After=network.target\n";
 	print $STOP_FILE "\n";
 	print $STOP_FILE "[Service]\n";
-	print $STOP_FILE "User=$user\n";
+	print $STOP_FILE "User=$vm_user\n";
 	print $STOP_FILE "Type=forking\n"
 	print $STOP_FILE "RemainAfterExit=yes\n";
-	print $STOP_FILE "ExecStop=/usr/local/bin/vm_control.pl stop $user\n";
+	print $STOP_FILE "ExecStop=/usr/local/bin/vm_control.pl stop $vm_user\n";
 	print $STOP_FILE "\n";
 	print $STOP_FILE "[Install]\n";
 	print $STOP_FILE "WantedBy=mutli-user.target\n";
