@@ -14,12 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#TODO: provide option to add all vagrant boxes of a user
 #TODO: reduce number of global variables
 #TODO: filter input to do start and stop jobs
 #TODO: check if box is already in file
 #TODO: separate array for suspend and halt queue
 #TODO: Fork on start and shutdown
 #TODO: write vagrant outpu to individual logfiles
+#TODO: print debug output to logfile or journalctl
 
 use strict;
 use warnings;
@@ -31,6 +33,7 @@ my @boxes, my @suspend, my @halt;
 my $cfg_dir = '/etc/vm_control/';
 
 #enable and start systemd units for each user
+#@param unit file: systemd unit to start and enable
 sub enable_unit {
 	print "enabling systemd unit @_\n";
 	my $ret = `systemctl enable @_`;
@@ -48,8 +51,10 @@ sub create_units {
 	my $start_file = "start_$user" ."_VM.service";
 
 	print "creating systemd unit for $user VM startup\n";
+
 	open(my $START_FILE, '>', "$sys_dir" ."$start_file")
 	 or die "could not open $sys_dir" ."$start_file: $!\n";
+
 	print $START_FILE "[UNIT]\n";
 	print $START_FILE "Description=Start $user Vagrant Boxes on start\n";
 	print $START_FILE "Requires=network.target\n";
@@ -69,8 +74,10 @@ sub create_units {
 
 	my $stop_file = "stop_$user" ."_VM.service";
 	print "creating systemd unit for $user VM stop\n";
+
 	open(my $STOP_FILE, '>', "$sys_dir" ."$stop_file")
 	 or die "could not open $sys_dir" ."$stop_file: $!\n";
+
 	print $STOP_FILE "[Unit]\n";
 	print $STOP_FILE "Description= Stop $user Vagrant Boxes on system down\n";
 	print $STOP_FILE "Requires=network.target\n";
@@ -106,10 +113,14 @@ sub job_control {
 	open(my $ID_LOG, '>>', "$log_file")
 	 or die "Could not open file $log_file: $!\n";
 
-	print $ID_LOG "==$date==$job==\n";
-	print $ID_LOG `vagrant $job $vm`;
+	print $ID_LOG "======$date======$job======\n";
+	close($ID_LOG);
+	system("vagrant $job $vm 1>>$log_file");
 }
 
+#start all tracked vagrant boxes of a user
+#@param vm_user: vagrant boxes of this user will be started
+#TODO: check if vm_user is in user file to avoid exploits
 sub start_vms {
 	#if /etc/vm_control/boxes exist read file
 	#start boxes
@@ -117,7 +128,9 @@ sub start_vms {
 
 #suspend all boxes of a user that are in the list
 #if they are not in the list halt them
+#@param vm_user: vagrant boxes of this user will be stopped
 sub stop_vms {
+	my $vm_user = @_;
 	my @vgs_line, my @ids;
 	my $id = 0;
 	my $i = 0;
@@ -141,8 +154,8 @@ sub stop_vms {
 	}
 
 	#check if box should be suspended or halted
-	open(my $CFG_FILE, '<', "$cfg_dir" ."user_cfg")
-	 or die "Could not open $cfg_dir" ."user_cfg"
+	open(my $CFG_FILE, '<', "$cfg_dir$vm_user" ."_box.cfg")
+	 or die "Could not open $cfg_dir$vm_user" ."_box.cfg"
 	for my $box_id (@ids) {
 		my $match = 0;
 		while(<$CFG_FILE>) {
