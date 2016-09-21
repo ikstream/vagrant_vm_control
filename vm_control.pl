@@ -27,6 +27,7 @@ use strict;
 use warnings;
 
 use File::HomeDir;
+use Getopt::Long;
 
 my $user;
 my @boxes;
@@ -231,13 +232,30 @@ sub get_boxes {
 
 #read command line input
 #@param ARGV: input from caller
-#	start: start boxes of user
-#	stop: suspend/halt boxes of user
-#	user: user to add to vm_controll
-#	boxes: id of boxes to add.
+#	start <user>: start boxes of user
+#	stop <user>: suspend/halt boxes of user
+#	user: followed by user to add to vm_control
+#	box: followed by id(s) of boxes to add, no id means all boxes
 #	help: calls help function
 sub get_input {
+	my $help, my $start_user, my $stop_user;
 
+	GetOptions(	"start=s"	=> \$start_user,
+				"stop=s"	=> \$stop_user,
+				"user=s"	=> \$user,
+				"box=s{,}"	=> \@boxes,
+				"help | h"	=> \$help)
+	 or die &help();
+
+	if ($start_user) {
+		&start_boxex($start_user);
+	} elsif ($stop_user) {
+		&stop_boxes($stop_user);
+	} elsif ($user) {
+		#TODO
+	} else {
+		&help(); #TODO
+=pod
 	#read user
 	if ( shift(@ARGV) eq "user" ) {
 		$user = shift(@ARGV);
@@ -252,6 +270,7 @@ sub get_input {
 		}
 	} else {
 		die "wrong input: vagrant id expected\n";
+=cut
 	}
 }
 
