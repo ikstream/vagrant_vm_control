@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+#TODO: reduce number of global variables
 #TODO: filter input to do start and stop jobs
 #TODO: check if box is already in file
 #TODO: separate array for suspend and halt queue
@@ -23,6 +23,8 @@
 
 use strict;
 use warnings;
+
+use File::HomeDir;
 
 my $user;
 my @boxes, my @suspend, my @halt;
@@ -40,6 +42,7 @@ sub enable_unit {
 }
 
 #create systemd units for each user monitored
+#@param user: start/stop vagrant boxes of this user
 sub create_units {
 	my $sys_dir = '/etc/systemd/system/';
 	my $start_file = "start_$user" ."_VM.service";
@@ -86,6 +89,27 @@ sub create_units {
 	&enable_unit($stop_file);
 }
 
+#run vagrant halt/suspend/up on given vagrant box and write to log
+#@param vm: vagrant box to run vagrant command on
+#@param job: command to run. should be halt/suspend/up
+#TODO: probably check job parameter for correctness
+sub job_control {
+	(my $vm, my $job) = @_;
+	my $home = File::HomeDir->my_home;
+	my $log_file = $home ."/.vm_control/$vm" .".log";
+	my $date = localtime();
+
+	if (! -f $home ."/.vm_control/") {
+		mkdir "$home/.vm_control", 0755;
+	}
+
+	open(my $ID_LOG, '>>', "$log_file")
+	 or die "Could not open file $log_file: $!\n";
+
+	print $ID_LOG "==$date==$job==\n";
+	print $ID_LOG `vagrant $job $vm`;
+}
+
 sub start_vms {
 	#if /etc/vm_control/boxes exist read file
 	#start boxes
@@ -99,7 +123,7 @@ sub stop_vms {
 	my $i = 0;
 	my $state = 3;
 	my %vms;
-
+	my $datetime;
 
 	print"stopping boxes of @_\n";
 	open(my $VGS, "vagrant global-status |")
@@ -133,17 +157,30 @@ sub stop_vms {
 		}
 	}
 
-	#create a child process for each virtual machine id
-	for(@suspend) {
+	#create a child process for each vagrant box in suspend
+	for my $vm (@suspend) {
 		my $pid = fork();
 
 		if(not defined $pid) {
 			print "could not fork\n";
 		}
 		if(!$pid) {
-			
+			&job_control($vm, "suspend");
 		}
 	}
+
+	#create a child process for each vagrant box in halt
+	for my $vm (@halt) {
+		my $pid = fork();
+
+		if(not defined $pid) {
+			print "could not fork\n";
+		}
+		if(!$pid) {
+			&job_control($vm, "halt");
+		}
+	}
+
 }
 
 sub get_boxes {
@@ -152,6 +189,12 @@ sub get_boxes {
 }
 
 #read command line input
+#@param ARGV: input from caller
+#	start: start boxes of user
+#	stop: suspend/halt boxes of user
+#	user: user to add to vm_controll
+#	boxes: id of boxes to add.
+#	help: calls help function
 sub get_input {
 
 	#read user
@@ -235,17 +278,5 @@ sub check_directory {
 	}
 }
 
-#probably not needed anymore
-#sub get_user {
-#	my $file_name = "$cfg_dir" .'user_cfg';
-#	open(my $USR_CFG, '<:encoding(UTF-8)', $file_name)
-#	 or die "Could not open file: $!\n";
-#	while(<$USR_CFG>) {
-#		&stop_vms($_);
-#	}
-#}
-
 &get_input(@ARGV);
-&check_directory();
-print "@boxes\n";
 
