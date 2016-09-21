@@ -122,8 +122,34 @@ sub job_control {
 #@param vm_user: vagrant boxes of this user will be started
 #TODO: check if vm_user is in user file to avoid exploits
 sub start_vms {
-	#if /etc/vm_control/boxes exist read file
-	#start boxes
+	my $vm_user = @_;
+	my @vms;
+	my $forks;
+
+	open(my $BOX_CFG, "<", "$cfg_dir$vm_user" ."_box.cfg")
+	 or die "Could not open $cfg_dir$vm_user". "_box.cfg");
+	while (<$BOX_CFG>) {
+		push(@vms,$_);
+	}
+
+	for my $vm (@vms) {
+		my $pid = fork();
+
+		if (not defined $pid) {
+			print "Could not fork $!\n";
+		}
+
+		if (! $pid) {
+			&job_control($vm, "up");
+			exit;
+		} else {
+			$forks++;
+		}
+	}
+
+	for (1 .. $forks) {
+		my $pid = wait();
+	}
 }
 
 #suspend all boxes of a user that are in the list
