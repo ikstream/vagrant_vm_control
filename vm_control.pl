@@ -29,7 +29,7 @@ use warnings;
 use File::HomeDir;
 
 my $user;
-my @boxes, my @suspend, my @halt;
+my @boxes;
 my $cfg_dir = '/etc/vm_control/';
 
 #enable and start systemd units for each user
@@ -163,6 +163,7 @@ sub stop_vms {
 	my $state = 3;
 	my %vms;
 	my $datetime;
+	my @suspend, my @halt;
 
 	print"stopping boxes of @_\n";
 	open(my $VGS, "vagrant global-status |")
