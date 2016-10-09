@@ -230,50 +230,6 @@ sub get_boxes {
 	#put them in halt and suspend array
 }
 
-#read command line input
-#@param ARGV: input from caller
-#	start <user>: start boxes of user
-#	stop <user>: suspend/halt boxes of user
-#	user: followed by user to add to vm_control
-#	box: followed by id(s) of boxes to add, no id means all boxes
-#	help: calls help function
-sub get_input {
-	my $help, my $start_user, my $stop_user;
-
-	GetOptions(	"start=s"	=> \$start_user,
-				"stop=s"	=> \$stop_user,
-				"user=s"	=> \$user,
-				"box=s{,}"	=> \@boxes,
-				"help | h"	=> \$help)
-	 or die &help();
-
-	if ($start_user) {
-		&start_boxex($start_user);
-	} elsif ($stop_user) {
-		&stop_boxes($stop_user);
-	} elsif ($user) {
-		#TODO
-	} else {
-		&help(); #TODO
-=pod
-	#read user
-	if ( shift(@ARGV) eq "user" ) {
-		$user = shift(@ARGV);
-	} else {
-		die "username expected\n";
-	}
-
-	#read boxes
-	if ( shift(@ARGV) eq "box" ) {
-		while(@ARGV) {
-			push @boxes, shift(@ARGV);
-		}
-	} else {
-		die "wrong input: vagrant id expected\n";
-=cut
-	}
-}
-
 #write user to config file
 #A List of all users monitored by this program will be
 #created.
@@ -338,5 +294,59 @@ sub check_directory {
 	}
 }
 
+#print help
+sub help {
+	print "Usage [option] <arguments> {[option] <argument>}\n";
+	print "\n";
+	print "Options:\n";
+	print "\t--user <username> \tmonitor Vagrant boxes of this user\n";
+	print "\t--box <vagrant_id>... \tmonitor the Vagrant Boxes with theses IDs\n";
+	print "\t--help|--h \tshow this help\n";
+	print "\n";
+}
+
+#read command line input
+#@param ARGV: input from caller
+#	start <user>: start boxes of user
+#	stop <user>: suspend/halt boxes of user
+#	user: followed by user to add to vm_control
+#	box: followed by id(s) of boxes to add, no id means all boxes
+#	help: calls help function
+sub get_input {
+	my $help, my $start_user, my $stop_user;
+
+	GetOptions(	"start=s"	=> \$start_user,
+				"stop=s"	=> \$stop_user,
+				"user=s"	=> \$user,
+				"box=s{,}"	=> \@boxes,
+				"help | h"	=> \$help)
+	 or die &help();
+
+	if ($start_user) {
+		&start_boxex($start_user);
+	} elsif ($stop_user) {
+		&stop_boxes($stop_user);
+	} elsif ($user) {
+		&check_directory
+	} else {
+		&help(); #TODO
+=pod
+	#read user
+	if ( shift(@ARGV) eq "user" ) {
+		$user = shift(@ARGV);
+	} else {
+		die "username expected\n";
+	}
+
+	#read boxes
+	if ( shift(@ARGV) eq "box" ) {
+		while(@ARGV) {
+			push @boxes, shift(@ARGV);
+		}
+	} else {
+		die "wrong input: vagrant id expected\n";
+=cut
+	}
+}
 &get_input(@ARGV);
 
