@@ -28,13 +28,14 @@ use warnings;
 
 use File::HomeDir;
 use Getopt::Long;
+use Pod::Usage;
 
 my $user;
 my @boxes;
 my $cfg_dir = '/etc/vm_control/';
 
 #enable and start systemd units for each user
-#@param unit file: systemd unit to start and enable
+#@unit file: systemd unit to start and enable
 sub enable_unit {
 	print "enabling systemd unit @_\n";
 	my $ret = `systemctl enable @_`;
@@ -46,7 +47,7 @@ sub enable_unit {
 }
 
 #create systemd units for each user monitored
-#@param user: start/stop vagrant boxes of this user
+#@user: start/stop vagrant boxes of this user
 sub create_units {
 	my $vm_user = @_;
 	my $sys_dir = '/etc/systemd/system/';
@@ -99,8 +100,8 @@ sub create_units {
 }
 
 #run vagrant halt/suspend/up on given vagrant box and write to log
-#@param vm: vagrant box to run vagrant command on
-#@param job: command to run. should be halt/suspend/up
+#@vm: vagrant box to run vagrant command on
+#@job: command to run. should be halt/suspend/up
 #TODO: probably check job parameter for correctness
 sub job_control {
 	(my $vm, my $job) = @_;
@@ -157,7 +158,7 @@ sub start_vms {
 
 #suspend all boxes of a user that are in the list
 #if they are not in the list halt them
-#@param vm_user: vagrant boxes of this user will be stopped
+#@vm_user: vagrant boxes of this user will be stopped
 sub stop_vms {
 	my $vm_user = @_;
 	my @vgs_line, my @ids;
@@ -179,13 +180,13 @@ sub stop_vms {
 		@vgs_line = split;
 
 		push(@ids, $vgs_line[$id]);
-		$vms{$ids[$i]} = $data[$state];
+		$vms{$ids[$i]} = $vgs_line[$state];
 		$i++;
 	}
 
 	#check if box should be suspended or halted
 	open(my $CFG_FILE, '<', "$cfg_dir$vm_user" ."_box.cfg")
-	 or die "Could not open $cfg_dir$vm_user" ."_box.cfg"
+	 or die "Could not open $cfg_dir$vm_user" ."_box.cfg";
 	for my $box_id (@ids) {
 		my $match = 0;
 		while(<$CFG_FILE>) {
@@ -301,7 +302,7 @@ sub help {
 	print "Options:\n";
 	print "\t--user <username> \tmonitor Vagrant boxes of this user\n";
 	print "\t--box <vagrant_id>... \tmonitor the Vagrant Boxes with theses IDs\n";
-	print "\t--help|--h \tshow this help\n";
+	print "\t--help | --h \tshow this help\n";
 	print "\n";
 }
 
@@ -313,14 +314,18 @@ sub help {
 #	box: followed by id(s) of boxes to add, no id means all boxes
 #	help: calls help function
 sub get_input {
-	my $help, my $start_user, my $stop_user;
+	my $help = 0;
+	my $man = 0;
+	my $start_user, my $stop_user;
 
-	GetOptions(	"start=s"	=> \$start_user,
-				"stop=s"	=> \$stop_user,
-				"user=s"	=> \$user,
-				"box=s{,}"	=> \@boxes,
-				"help | h"	=> \$help)
-	 or die &help();
+	GetOptions(	'start=s'	=> \$start_user,
+			'stop=s'	=> \$stop_user,
+			'user=s'	=> \$user,
+			'box=s{,}'	=> \@boxes,
+			'help|h|?'	=> \$help)
+	 or pod2usage(2);
+ 	pod2usage(1) if $help;
+	pod2usage(-exitval => 0, -verbose => 2) if $man;
 
 	if ($start_user) {
 		&start_boxex($start_user);
@@ -330,23 +335,25 @@ sub get_input {
 		&check_directory
 	} else {
 		&help(); #TODO
-=pod
-	#read user
-	if ( shift(@ARGV) eq "user" ) {
-		$user = shift(@ARGV);
-	} else {
-		die "username expected\n";
-	}
-
-	#read boxes
-	if ( shift(@ARGV) eq "box" ) {
-		while(@ARGV) {
-			push @boxes, shift(@ARGV);
-		}
-	} else {
-		die "wrong input: vagrant id expected\n";
-=cut
 	}
 }
 &get_input(@ARGV);
-
+	
+=head1 NAME
+	sample - Using Getopt::Long and Pod::Usage
+=head1 SYNOPSIS
+	sample [options] [file ...]
+	 Options:
+	   -help            brief help message
+	   -man             full documentation
+=head1 OPTIONS
+=over 8
+=item B<-help>
+	Print a brief help message and exits.
+=item B<-man>
+	Prints the manual page and exits.
+	=back
+=head1 DESCRIPTION
+	B<This program> will read the given input file(s) and do something
+	useful with the contents thereof.
+=cut
