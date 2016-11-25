@@ -87,7 +87,7 @@ sub create_units {
 	print $STOP_FILE "\n";
 	print $STOP_FILE "[Service]\n";
 	print $STOP_FILE "User=$vm_user\n";
-	print $STOP_FILE "Type=forking\n"
+	print $STOP_FILE "Type=forking\n";
 	print $STOP_FILE "RemainAfterExit=yes\n";
 	print $STOP_FILE "ExecStop=/usr/local/bin/vm_control.pl stop $vm_user\n";
 	print $STOP_FILE "\n";
@@ -129,7 +129,8 @@ sub start_vms {
 	my $forks;
 
 	open(my $BOX_CFG, "<", "$cfg_dir$vm_user" ."_box.cfg")
-	 or die "Could not open $cfg_dir$vm_user". "_box.cfg");
+	# TODO: add _box.cfg to string
+	 or die "Could not open $cfg_dir$vm_user";
 	while (<$BOX_CFG>) {
 		push(@vms,$_);
 	}
@@ -222,7 +223,6 @@ sub stop_vms {
 			&job_control($vm, "halt");
 		}
 	}
-
 }
 
 sub get_boxes {
