@@ -22,7 +22,7 @@
 #TODO: Fork on start and shutdown
 #TODO: write vagrant outpu to individual logfiles
 #TODO: print debug output to logfile or journalctl
-
+#TODO: rewrite box storage to keep boxes in own home dir
 use strict;
 use warnings;
 
