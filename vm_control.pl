@@ -328,7 +328,7 @@ sub get_input {
 	pod2usage(-exitval => 0, -verbose => 2) if $man;
 
 	if ($start_user) {
-		&start_boxex($start_user);
+		&start_boxes($start_user);
 	} elsif ($stop_user) {
 		&stop_boxes($stop_user);
 	} elsif ($user) {
