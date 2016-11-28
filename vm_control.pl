@@ -41,9 +41,9 @@ sub enable_unit {
 	my $ret = `systemctl enable @_`;
 	print "something went wrong: systemd returned $ret" if ($ret);
 
-	print "starting systemd unit @_\n";
-	$ret = `systemctl start @_`;
-	print "something went wrong: systemd returned $ret" if ($ret);
+#	print "starting systemd unit @_\n";
+#	$ret = `systemctl start @_`;
+#	print "something went wrong: systemd returned $ret" if ($ret);
 }
 
 #create systemd units for each user monitored
@@ -131,7 +131,7 @@ sub start_vms {
 
 	open(my $BOX_CFG, "<", "$cfg_dir$vm_user" ."_box.cfg")
 	# TODO: add _box.cfg to string
-	 or die "Could not open $cfg_dir$vm_user";
+	 or die "Could not open $cfg_dir$vm_user\\_box.cfg";
 	while (<$BOX_CFG>) {
 		push(@vms,$_);
 	}
