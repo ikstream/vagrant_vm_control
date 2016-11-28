@@ -30,7 +30,6 @@ use File::HomeDir;
 use Getopt::Long;
 use Pod::Usage;
 
-my $user;
 my @boxes;
 my $cfg_dir = '/etc/vm_control/';
 
@@ -59,7 +58,7 @@ sub create_units {
 	 or die "could not open $sys_dir" ."$start_file: $!\n";
 
 	print $START_FILE "[UNIT]\n";
-	print $START_FILE "Description=Start $user Vagrant Boxes on start\n";
+	print $START_FILE "Description=Start $vm_user Vagrant Boxes on start\n";
 	print $START_FILE "Requires=network.target\n";
 	print $START_FILE "After=network.target\n";
 	print $START_FILE "\n";
@@ -67,7 +66,7 @@ sub create_units {
 	print $START_FILE "User=$vm_user\n";
 	print $START_FILE "Type=forking\n";
 	print $START_FILE "RemainAfterExit=yes\n";
-	print $START_FILE "ExecStart=/usr/local/bin/vm_conrol.pl start $user\n";
+	print $START_FILE "ExecStart=/usr/local/bin/vm_conrol.pl start $vm_user\n";
 	print $START_FILE "\n";
 	print $START_FILE "[Install]\n";
 	print $START_FILE "WantedBy=multi-user.target\n";
@@ -82,7 +81,7 @@ sub create_units {
 	 or die "could not open $sys_dir" ."$stop_file: $!\n";
 
 	print $STOP_FILE "[Unit]\n";
-	print $STOP_FILE "Description= Stop $user Vagrant Boxes on system down\n";
+	print $STOP_FILE "Description= Stop $vm_user Vagrant Boxes on system down\n";
 	print $STOP_FILE "Requires=network.target\n";
 	print $STOP_FILE "After=network.target\n";
 	print $STOP_FILE "\n";
@@ -110,7 +109,7 @@ sub job_control {
 	my $date = localtime();
 
 	if (! -f $home ."/.vm_control/") {
-		mkdir "$home/.vm_control", 0755;
+		mkdir "$home/.vm_control/", 0755;
 	}
 
 	open(my $ID_LOG, '>>', "$log_file")
@@ -122,16 +121,17 @@ sub job_control {
 }
 
 #start all tracked vagrant boxes of a user
-#@param vm_user: vagrant boxes of this user will be started
+#@vm_user: vagrant boxes of this user will be started
 #TODO: check if vm_user is in user file to avoid exploits
 sub start_vms {
 	my $vm_user = @_;
 	my @vms;
 	my $forks;
+	my $home_dir = File::HomeDir->users_home("$vm_user");
 
-	open(my $BOX_CFG, "<", "$cfg_dir$vm_user" ."_box.cfg")
-	# TODO: add _box.cfg to string
-	 or die "Could not open $cfg_dir$vm_user\\_box.cfg";
+	open(my $BOX_CFG, "<", "$home_dir/.vm_control/$vm_user" ."_box.cfg")
+	 or die "Could not open $home_dir/.vm_control/$vm_user" ."_box.cfgi: $!\n";
+
 	while (<$BOX_CFG>) {
 		push(@vms,$_);
 	}
@@ -168,8 +168,9 @@ sub stop_vms {
 	my %vms;
 	my $datetime;
 	my @suspend, my @halt;
+	my $home_dir = File::HomeDir->users_home("vm_user");
 
-	print"stopping boxes of @_\n";
+	print"stopping boxes of $vm_user\n";
 	open(my $VGS, "vagrant global-status |")
 	 or die "Failed to run vagrant global-status: $!\n";
 
@@ -185,8 +186,8 @@ sub stop_vms {
 	}
 
 	#check if box should be suspended or halted
-	open(my $CFG_FILE, '<', "$cfg_dir$vm_user" ."_box.cfg")
-	 or die "Could not open $cfg_dir$vm_user" ."_box.cfg";
+	open(my $CFG_FILE, '<', "$home_dir/.vm_control/$vm_user" ."_box.cfg")
+	 or die "Could not open $home_dir/.vm_control/$vm_user" ."_box.cfg";
 	for my $box_id (@ids) {
 		my $match = 0;
 		while(<$CFG_FILE>) {
@@ -234,7 +235,9 @@ sub get_boxes {
 #write user to config file
 #A List of all users monitored by this program will be
 #created.
+#@user: write this user to config
 sub write_user {
+	my $user = @_;
 	my $file_name = "$cfg_dir" ."user_cfg";
 
 	if ( ! -f $file_name) {
@@ -262,8 +265,11 @@ sub write_user {
 }
 
 #write boxes for a user to its config file
+#@user write vagrant boxes of this user to files
 sub write_boxes {
-	my $file_name = "$cfg_dir$user" ."_box.cfg";
+	my $vm_user = @_;
+	my $home_dir = File::HomeDir->users_home("");
+	my $file_name = "$home_dir/.vm_control/$vm_user" ."_box.cfg";
 
 	if (! -f $file_name) {
 		open( my $CFG_FILE, '>>', $file_name)
@@ -281,17 +287,18 @@ sub write_boxes {
 
 #check if config directory exists
 sub check_directory {
+	my $user = @_;
 
 	print "checking if $cfg_dir exists\n";
 	if ( -d $cfg_dir ) {
-		&write_user();
-		&write_boxes();
+		&write_user($user);
+		&write_boxes($user);
 	} else {
 		print "directory does not exist - creating it\n";
 		mkdir $cfg_dir, 0755
 		 or die "could not create $cfg_dir: $!\n";
-		&write_user();
-		&write_boxes();
+		&write_user($user);
+		&write_boxes($user);
 	}
 }
 
@@ -316,7 +323,7 @@ sub help {
 sub get_input {
 	my $help = 0;
 	my $man = 0;
-	my $start_user, my $stop_user;
+	my $start_user, my $stop_user, my $user;
 
 	GetOptions(	'start=s'	=> \$start_user,
 			'stop=s'	=> \$stop_user,
@@ -332,13 +339,13 @@ sub get_input {
 	} elsif ($stop_user) {
 		&stop_boxes($stop_user);
 	} elsif ($user) {
-		&check_directory
+		&check_directory($user)
 	} else {
 		&help(); #TODO
 	}
 }
 &get_input(@ARGV);
-	
+
 =head1 NAME
 	sample - Using Getopt::Long and Pod::Usage
 =head1 SYNOPSIS
@@ -357,3 +364,4 @@ sub get_input {
 	B<This program> will read the given input file(s) and do something
 	useful with the contents thereof.
 =cut
+
