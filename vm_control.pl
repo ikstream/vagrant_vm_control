@@ -23,6 +23,8 @@
 #TODO: write vagrant outpu to individual logfiles
 #TODO: print debug output to logfile or journalctl
 #TODO: rewrite box storage to keep boxes in own home dir
+#TODO: allow user to add boxes instead of only root
+#TODO: simplify
 use strict;
 use warnings;
 
