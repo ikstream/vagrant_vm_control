@@ -15,10 +15,8 @@
 # limitations under the License.
 
 #TODO: provide option to add all vagrant boxes of a user
-#TODO: reduce number of global variables
 #TODO: filter input to do start and stop jobs
 #TODO: check if box is already in file
-#TODO: separate array for suspend and halt queue
 #TODO: Fork on start and shutdown
 #TODO: write vagrant outpu to individual logfiles
 #TODO: print debug output to logfile or journalctl
