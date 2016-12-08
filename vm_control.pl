@@ -35,8 +35,8 @@ my $cfg_dir = '/etc/vm_control/';
 #enable and start systemd units for each user
 #@unit file: systemd unit to start and enable
 sub enable_unit {
-	print "enabling systemd unit @_\n";
-	my $ret = `systemctl enable @_`;
+	print "enabling systemd unit $_\n";
+	my $ret = `systemctl enable $_`;
 	print "something went wrong: systemd returned $ret" if ($ret);
 
 #	print "starting systemd unit @_\n";
@@ -47,7 +47,7 @@ sub enable_unit {
 #create systemd units for each user monitored
 #@user: start/stop vagrant boxes of this user
 sub create_units {
-	my $vm_user = @_;
+	my $vm_user = $_;
 	my $sys_dir = '/etc/systemd/system/';
 	my $start_file = "start_$vm_user" ."_VM.service";
 
