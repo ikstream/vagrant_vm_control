@@ -32,7 +32,6 @@ use File::HomeDir;
 use Getopt::Long;
 use Pod::Usage;
 
-my @boxes;
 my $cfg_dir = '/etc/vm_control/';
 
 #enable and start systemd units for each user
@@ -269,7 +268,8 @@ sub write_user {
 #write boxes for a user to its config file
 #@user write vagrant boxes of this user to files
 sub write_boxes {
-	my $vm_user = @_;
+	my $vm_user = $_[0];
+	my @boxes = @{$_[1]};
 	my $home_dir = File::HomeDir->users_home("");
 	my $file_name = "$home_dir/.vm_control/$vm_user" ."_box.cfg";
 
@@ -289,7 +289,8 @@ sub write_boxes {
 
 #check if config directory exists
 sub check_directory {
-	my $user = @_;
+	my $user = $_[0];
+	my @boxes = @{$_[1]};
 
 	print "checking if $cfg_dir exists\n";
 	if ( -d $cfg_dir ) {
@@ -300,7 +301,7 @@ sub check_directory {
 		mkdir $cfg_dir, 0755
 		 or die "could not create $cfg_dir: $!\n";
 		&write_user($user);
-		&write_boxes($user);
+		&write_boxes($user, \@boxes);
 	}
 }
 
@@ -316,7 +317,7 @@ sub help {
 }
 
 #read command line input
-#@param ARGV: input from caller
+#@ARGV: input from caller
 #	start <user>: start boxes of user
 #	stop <user>: suspend/halt boxes of user
 #	user: followed by user to add to vm_control
@@ -326,6 +327,7 @@ sub get_input {
 	my $help = 0;
 	my $man = 0;
 	my $start_user, my $stop_user, my $user;
+	my @boxes;
 
 	GetOptions(	'start=s'	=> \$start_user,
 			'stop=s'	=> \$stop_user,
@@ -341,9 +343,9 @@ sub get_input {
 	} elsif ($stop_user) {
 		&stop_boxes($stop_user);
 	} elsif ($user) {
-		&check_directory($user)
+		&check_directory($user, \@boxes)
 	} else {
-		&help(); #TODO
+		&help();
 	}
 }
 &get_input(@ARGV);
