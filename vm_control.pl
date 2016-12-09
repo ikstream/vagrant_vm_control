@@ -123,7 +123,7 @@ sub job_control {
 #@vm_user: vagrant boxes of this user will be started
 #TODO: check if vm_user is in user file to avoid exploits
 sub start_vms {
-	my $vm_user = @_;
+	my $vm_user = $_;
 	my @vms;
 	my $forks;
 	my $home_dir = File::HomeDir->users_home("$vm_user");
@@ -159,7 +159,7 @@ sub start_vms {
 #if they are not in the list halt them
 #@vm_user: vagrant boxes of this user will be stopped
 sub stop_vms {
-	my $vm_user = @_;
+	my $vm_user = $_;
 	my @vgs_line, my @ids;
 	my $id = 0;
 	my $i = 0;
@@ -236,7 +236,7 @@ sub get_boxes {
 #created.
 #@user: write this user to config
 sub write_user {
-	my $user = @_;
+	my $user = $_;
 	my $file_name = "$cfg_dir" ."user_cfg";
 
 	if ( ! -f $file_name) {
@@ -268,7 +268,7 @@ sub write_user {
 sub write_boxes {
 	my $vm_user = $_[0];
 	my @boxes = @{$_[1]};
-	my $home_dir = File::HomeDir->users_home("");
+	my $home_dir = File::HomeDir->users_home("$vm_user");
 	my $file_name = "$home_dir/.vm_control/$vm_user" ."_box.cfg";
 
 	if (! -f $file_name) {
