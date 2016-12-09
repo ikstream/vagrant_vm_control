@@ -35,8 +35,9 @@ my $cfg_dir = '/etc/vm_control/';
 #enable and start systemd units for each user
 #@unit file: systemd unit to start and enable
 sub enable_unit {
-	print "enabling systemd unit $_\n";
-	my $ret = `systemctl enable $_`;
+	my $unit = shift;
+	print "enabling systemd unit $unit\n";
+	my $ret = `systemctl enable $unit`;
 	print "something went wrong: systemd returned $ret" if ($ret);
 
 #	print "starting systemd unit @_\n";
@@ -47,7 +48,7 @@ sub enable_unit {
 #create systemd units for each user monitored
 #@user: start/stop vagrant boxes of this user
 sub create_units {
-	my $vm_user = $_;
+	my $vm_user = shift;
 	my $sys_dir = '/etc/systemd/system/';
 	my $start_file = "start_$vm_user" ."_VM.service";
 
@@ -102,7 +103,7 @@ sub create_units {
 #@job: command to run. should be halt/suspend/up
 #TODO: probably check job parameter for correctness
 sub job_control {
-	(my $vm, my $job) = @_;
+	my ($vm, $job) = @_;
 	my $home = File::HomeDir->my_home;
 	my $log_file = $home ."/.vm_control/$vm" .".log";
 	my $date = localtime();
@@ -123,7 +124,7 @@ sub job_control {
 #@vm_user: vagrant boxes of this user will be started
 #TODO: check if vm_user is in user file to avoid exploits
 sub start_vms {
-	my $vm_user = $_;
+	my $vm_user = shift;
 	my @vms;
 	my $forks;
 	my $home_dir = File::HomeDir->users_home("$vm_user");
@@ -159,7 +160,7 @@ sub start_vms {
 #if they are not in the list halt them
 #@vm_user: vagrant boxes of this user will be stopped
 sub stop_vms {
-	my $vm_user = $_;
+	my $vm_user = shift;
 	my @vgs_line, my @ids;
 	my $id = 0;
 	my $i = 0;
@@ -236,8 +237,10 @@ sub get_boxes {
 #created.
 #@user: write this user to config
 sub write_user {
-	my $user = $_;
+	my $user = shift;
 	my $file_name = "$cfg_dir" ."user_cfg";
+
+	print "user in write_user(): $user\n";
 
 	if ( ! -f $file_name) {
 		print "$file_name does not exist -> creating...\n";
@@ -249,7 +252,10 @@ sub write_user {
 	}
 	open(my $USR_CFG, '<:encoding(UTF-8)', "$file_name")
 	 or die "Could not open file $file_name $!\n";
-	while(chomp(my $known_user = <$USR_CFG>)) {
+	while(my $known_user = <$USR_CFG>) {
+		if ($known_user) {
+			chomp($known_user);
+		}
 		if($known_user eq "$user") {
 			close($USR_CFG);
 			return 0;
@@ -263,6 +269,19 @@ sub write_user {
 	&create_units($user);
 }
 
+#check if .vm_control directory exists in users home directory
+#@user: check home directory of this user
+#TODO: create VM_Control dir as user
+sub check_home_directory {
+	my $user = shift;
+	my $user_dir = File::HomeDir->users_home("$user") ."/.vm_control";
+
+	if (! -d $user_dir) {
+		mkdir $user_dir, 0755
+		 or die "Could not create $user_dir: $!\n";
+	}
+}
+
 #write boxes for a user to its config file
 #@user write vagrant boxes of this user to files
 sub write_boxes {
@@ -274,8 +293,8 @@ sub write_boxes {
 	if (! -f $file_name) {
 		open( my $CFG_FILE, '>>', $file_name)
 		 or die "Could not open file $file_name $!\n";
-		for (@boxes) {
-			print $CFG_FILE $_ . "\n";
+		for my $box (@boxes) {
+			print $CFG_FILE $box . "\n";
 		}
 		close($CFG_FILE);
 	} else {
@@ -289,7 +308,8 @@ sub write_boxes {
 sub check_directory {
 	my $user = $_[0];
 	my @boxes = @{$_[1]};
-
+	
+	print "user in check_directory(): $user\n";
 	print "checking if $cfg_dir exists\n";
 	if ( -d $cfg_dir ) {
 		&write_user($user);
@@ -336,6 +356,7 @@ sub get_input {
  	pod2usage(1) if $help;
 	pod2usage(-exitval => 0, -verbose => 2) if $man;
 
+	print "user: $user\n";
 	if ($start_user) {
 		&start_boxes($start_user);
 	} elsif ($stop_user) {
