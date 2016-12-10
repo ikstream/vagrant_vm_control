@@ -271,14 +271,12 @@ sub write_user {
 
 #check if .vm_control directory exists in users home directory
 #@user: check home directory of this user
-#TODO: create VM_Control dir as user
 sub check_home_directory {
 	my $user = shift;
 	my $user_dir = File::HomeDir->users_home("$user") ."/.vm_control";
 
 	if (! -d $user_dir) {
-		mkdir $user_dir, 0755
-		 or die "Could not create $user_dir: $!\n";
+		my $ret = qx{"su" "-c" "mkdir -m755 $user_dir" "$user"}
 	}
 }
 
@@ -290,6 +288,7 @@ sub write_boxes {
 	my $home_dir = File::HomeDir->users_home("$vm_user");
 	my $file_name = "$home_dir/.vm_control/$vm_user" ."_box.cfg";
 
+	&check_home_directory($user);
 	if (! -f $file_name) {
 		open( my $CFG_FILE, '>>', $file_name)
 		 or die "Could not open file $file_name $!\n";
