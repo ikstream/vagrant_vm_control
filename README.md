@@ -9,6 +9,6 @@ you can add Virtual Machines for the user in the same step
 > sudo perl vm_control.pl --user \<username\> --box \<box_id\> ...
 
 The Following Modules are needed:
-> File::HomeDir
-> Getopt::Long
-> Pod::Usage
+> File::HomeDir\n
+> Getopt::Long\n
+> Pod::Usage\n
