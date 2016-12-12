@@ -48,33 +48,33 @@ sub enable_unit {
 	my $ret = `systemctl enable $unit`;
 	print "something went wrong: systemd returned $ret" if ($ret);
 
-#	print "starting systemd unit @_\n";
-#	$ret = `systemctl start @_`;
+#	print "starting systemd unit $unit\n";
+#	$ret = `systemctl start $unit`;
 #	print "something went wrong: systemd returned $ret" if ($ret);
 }
 
 #create systemd units for each user monitored
 #@user: start/stop vagrant boxes of this user
 sub create_units {
-	my $vm_user = shift;
+	my $user = shift;
 	my $sys_dir = '/etc/systemd/system/';
-	my $start_file = "start_$vm_user" ."_VM.service";
+	my $start_file = "start_$user" ."_VM.service";
 
-	print "creating systemd unit for $vm_user VM startup\n";
+	print "creating systemd unit for $user VM startup\n";
 
 	open(my $START_FILE, '>', "$sys_dir" ."$start_file")
 	 or die "could not open $sys_dir" ."$start_file: $!\n";
 
 	print $START_FILE "[UNIT]\n";
-	print $START_FILE "Description=Start $vm_user Vagrant Boxes on start\n";
+	print $START_FILE "Description=Start $user Vagrant Boxes on start\n";
 	print $START_FILE "Requires=network.target\n";
 	print $START_FILE "After=network.target\n";
 	print $START_FILE "\n";
 	print $START_FILE "[Service]\n";
-	print $START_FILE "User=$vm_user\n";
+	print $START_FILE "User=$user\n";
 	print $START_FILE "Type=forking\n";
 	print $START_FILE "RemainAfterExit=yes\n";
-	print $START_FILE "ExecStart=/usr/local/bin/vm_conrol.pl start $vm_user\n";
+	print $START_FILE "ExecStart=/usr/local/bin/vm_conrol.pl start $user\n";
 	print $START_FILE "\n";
 	print $START_FILE "[Install]\n";
 	print $START_FILE "WantedBy=multi-user.target\n";
@@ -82,22 +82,22 @@ sub create_units {
 
 	&enable_unit($start_file);
 
-	my $stop_file = "stop_$vm_user" ."_VM.service";
-	print "creating systemd unit for $vm_user VM stop\n";
+	my $stop_file = "stop_$user" ."_VM.service";
+	print "creating systemd unit for $user VM stop\n";
 
 	open(my $STOP_FILE, '>', "$sys_dir" ."$stop_file")
 	 or die "could not open $sys_dir" ."$stop_file: $!\n";
 
 	print $STOP_FILE "[Unit]\n";
-	print $STOP_FILE "Description= Stop $vm_user Vagrant Boxes on system down\n";
+	print $STOP_FILE "Description= Stop $user Vagrant Boxes on system down\n";
 	print $STOP_FILE "Requires=network.target\n";
 	print $STOP_FILE "After=network.target\n";
 	print $STOP_FILE "\n";
 	print $STOP_FILE "[Service]\n";
-	print $STOP_FILE "User=$vm_user\n";
+	print $STOP_FILE "User=$user\n";
 	print $STOP_FILE "Type=forking\n";
 	print $STOP_FILE "RemainAfterExit=yes\n";
-	print $STOP_FILE "ExecStop=/usr/local/bin/vm_control.pl stop $vm_user\n";
+	print $STOP_FILE "ExecStop=/usr/local/bin/vm_control.pl stop $user\n";
 	print $STOP_FILE "\n";
 	print $STOP_FILE "[Install]\n";
 	print $STOP_FILE "WantedBy=mutli-user.target\n";
@@ -109,7 +109,6 @@ sub create_units {
 #run vagrant halt/suspend/up on given vagrant box and write to log
 #@vm: vagrant box to run vagrant command on
 #@job: command to run. should be halt/suspend/up
-#TODO: probably check job parameter for correctness
 sub job_control {
 	my ($vm, $job) = @_;
 	my $home = File::HomeDir->my_home;
@@ -132,13 +131,13 @@ sub job_control {
 #@vm_user: vagrant boxes of this user will be started
 #TODO: check if vm_user is in user file to avoid exploits
 sub start_vms {
-	my $vm_user = shift;
+	my $user = shift;
 	my @vms;
 	my $forks;
-	my $home_dir = File::HomeDir->users_home("$vm_user");
+	my $home_dir = File::HomeDir->users_home("$user");
 
-	open(my $BOX_CFG, "<", "$home_dir/.vm_control/$vm_user" ."_box.cfg")
-	 or die "Could not open $home_dir/.vm_control/$vm_user" ."_box.cfgi: $!\n";
+	open(my $BOX_CFG, "<", "$home_dir/.vm_control/$user" ."_box.cfg")
+	 or die "Could not open $home_dir/.vm_control/$user" ."_box.cfgi: $!\n";
 
 	while (<$BOX_CFG>) {
 		push(@vms,$_);
@@ -168,7 +167,7 @@ sub start_vms {
 #if they are not in the list halt them
 #@vm_user: vagrant boxes of this user will be stopped
 sub stop_vms {
-	my $vm_user = shift;
+	my $user = shift;
 	my @vgs_line, my @ids;
 	my $id = 0;
 	my $i = 0;
@@ -176,9 +175,9 @@ sub stop_vms {
 	my %vms;
 	my $datetime;
 	my @suspend, my @halt;
-	my $home_dir = File::HomeDir->users_home("vm_user");
+	my $home_dir = File::HomeDir->users_home("$user");
 
-	print"stopping boxes of $vm_user\n";
+	print"stopping boxes of $user\n";
 	open(my $VGS, "vagrant global-status |")
 	 or die "Failed to run vagrant global-status: $!\n";
 
@@ -194,8 +193,8 @@ sub stop_vms {
 	}
 
 	#check if box should be suspended or halted
-	open(my $CFG_FILE, '<', "$home_dir/.vm_control/$vm_user" ."_box.cfg")
-	 or die "Could not open $home_dir/.vm_control/$vm_user" ."_box.cfg";
+	open(my $CFG_FILE, '<', "$home_dir/.vm_control/$user" ."_box.cfg")
+	 or die "Could not open $home_dir/.vm_control/$user" ."_box.cfg";
 	for my $box_id (@ids) {
 		my $match = 0;
 		while(<$CFG_FILE>) {
@@ -291,10 +290,10 @@ sub check_home_directory {
 #write boxes for a user to its config file
 #@user write vagrant boxes of this user to files
 sub write_boxes {
-	my $vm_user = $_[0];
+	my $user = $_[0];
 	my @boxes = @{$_[1]};
-	my $home_dir = File::HomeDir->users_home("$vm_user");
-	my $file_name = "$home_dir/.vm_control/$vm_user" ."_box.cfg";
+	my $home_dir = File::HomeDir->users_home("$user");
+	my $file_name = "$home_dir/.vm_control/$user" ."_box.cfg";
 
 	&check_home_directory($user);
 	if (! -f $file_name) {
