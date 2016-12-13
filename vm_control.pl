@@ -315,11 +315,10 @@ sub check_directory {
 	my $user = $_[0];
 	my @boxes = @{$_[1]};
 	
-	print "user in check_directory(): $user\n";
 	print "checking if $cfg_dir exists\n";
 	if ( -d $cfg_dir ) {
 		&write_user($user);
-		&write_boxes($user);
+		&write_boxes($user, \@boxes);
 	} else {
 		print "directory does not exist - creating it\n";
 		mkdir $cfg_dir, 0755
