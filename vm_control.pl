@@ -350,14 +350,15 @@ sub help {
 sub get_input {
 	my $help = 0;
 	my $man = 0;
-	my $start_user, my $stop_user, my $user;
+	my $start_user, my $stop_user, my $user, my $all;
 	my @boxes;
 
 	GetOptions(	'start=s'	=> \$start_user,
 			'stop=s'	=> \$stop_user,
 			'user=s'	=> \$user,
 			'box=s{,}'	=> \@boxes,
-			'help|h|?'	=> \$help)
+			'help|h|?'	=> \$help,
+			'all'		=> \$all)
 	 or pod2usage(2);
  	pod2usage(1) if $help;
 	pod2usage(-exitval => 0, -verbose => 2) if $man;
@@ -368,7 +369,9 @@ sub get_input {
 	} elsif ($stop_user) {
 		&stop_boxes($stop_user);
 	} elsif ($user) {
-		&check_directory($user, \@boxes)
+		&check_directory($user, \@boxes);
+	} elsif ($all) {
+		&check_directory($user, $all);
 	} else {
 		&help();
 	}
