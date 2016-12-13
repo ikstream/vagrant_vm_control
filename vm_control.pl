@@ -116,6 +116,7 @@ sub job_control {
 	my $date = localtime();
 
 	if (! -f $home ."/.vm_control/") {
+		#TODO: replace so user owns it
 		mkdir "$home/.vm_control/", 0755;
 	}
 
@@ -283,7 +284,7 @@ sub check_home_directory {
 	my $user_dir = File::HomeDir->users_home("$user") ."/.vm_control";
 
 	if (! -d $user_dir) {
-		my $ret = qx{"su" "-c" "mkdir -m755 $user_dir" "$user"}
+		my $ret = qx{"su" "-c" "mkdir -m755 $user_dir ; touch $user_dir/config" "$user"}
 	}
 }
 
@@ -291,21 +292,39 @@ sub check_home_directory {
 #@user write vagrant boxes of this user to files
 sub write_boxes {
 	my $user = $_[0];
-	my @boxes = @{$_[1]};
+	my $all;
+	my @boxes;
+
+	if ($_[2]) {
+		$all = $_[1];
+		@boxes = @{$_[2]};
+	} else {
+		@boxes = @{$_[1]};
+	}
+	print "in write boxes user: $user, all: $all, boxes: @boxes\n";
 	my $home_dir = File::HomeDir->users_home("$user");
 	my $file_name = "$home_dir/.vm_control/$user" ."_box.cfg";
 
 	&check_home_directory($user);
+	if ($all) {
+		&get_boxes();
+		return 0;
+	}
 	if (! -f $file_name) {
+		open( my $CFG_FILE, '>>', $file_name)
+		 or die "Could not open file $file_name $!\n";
+		for my $box (@boxes) {
+			print "writing $box to $file_name\n";
+			print $CFG_FILE $box . "\n";
+		}
+		close($CFG_FILE);
+	} else {
+		#TODO: check if box is already in config
 		open( my $CFG_FILE, '>>', $file_name)
 		 or die "Could not open file $file_name $!\n";
 		for my $box (@boxes) {
 			print $CFG_FILE $box . "\n";
 		}
-		close($CFG_FILE);
-	} else {
-		open(my $CFG_FILE, '<', $file_name)
-		 or die "Could not open file $file_name $!\n";
 		close($CFG_FILE);
 	}
 }
@@ -313,7 +332,8 @@ sub write_boxes {
 #check if config directory exists
 sub check_directory {
 	my $user = $_[0];
-	my @boxes = @{$_[1]};
+	my $all = $_[1];
+	my @boxes = @{$_[2]};
 	
 	print "checking if $cfg_dir exists\n";
 	if ( -d $cfg_dir ) {
@@ -323,7 +343,7 @@ sub check_directory {
 		print "directory does not exist - creating it\n";
 		mkdir $cfg_dir, 0755
 		 or die "could not create $cfg_dir: $!\n";
-		&write_user($user);
+	&write_user($user);
 		&write_boxes($user, \@boxes);
 	}
 }
@@ -349,7 +369,8 @@ sub help {
 sub get_input {
 	my $help = 0;
 	my $man = 0;
-	my $start_user, my $stop_user, my $user, my $all;
+	my $start_user, my $stop_user, my $user;
+	my $all = 0;
 	my @boxes;
 
 	GetOptions(	'start=s'	=> \$start_user,
@@ -368,9 +389,7 @@ sub get_input {
 	} elsif ($stop_user) {
 		&stop_boxes($stop_user);
 	} elsif ($user) {
-		&check_directory($user, \@boxes);
-	} elsif ($all) {
-		&check_directory($user, $all);
+		&check_directory($user, $all, \@boxes);
 	} else {
 		&help();
 	}
