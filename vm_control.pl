@@ -343,7 +343,7 @@ sub check_directory {
 		print "directory does not exist - creating it\n";
 		mkdir $cfg_dir, 0755
 		 or die "could not create $cfg_dir: $!\n";
-	&write_user($user);
+		&write_user($user);
 		&write_boxes($user, \@boxes);
 	}
 }
