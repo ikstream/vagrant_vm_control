@@ -39,6 +39,7 @@ use Getopt::Long;
 use Pod::Usage;
 
 my $cfg_dir = '/etc/vm_control/';
+my $debug = 0;
 
 #enable and start systemd units for each user
 #@unit file: systemd unit to start and enable
@@ -248,7 +249,7 @@ sub write_user {
 	my $user = shift;
 	my $file_name = "$cfg_dir" ."user_cfg";
 
-	print "user in write_user(): $user\n";
+	print "user in write_user(): $user\n" if ($debug);
 
 	if ( ! -f $file_name) {
 		print "$file_name does not exist -> creating...\n";
@@ -301,7 +302,7 @@ sub write_boxes {
 	} else {
 		@boxes = @{$_[1]};
 	}
-	print "in write boxes user: $user, all: $all, boxes: @boxes\n";
+	print "in write boxes user: $user, all: $all, boxes: @boxes\n" if ($debug);
 	my $home_dir = File::HomeDir->users_home("$user");
 	my $file_name = "$home_dir/.vm_control/$user" ."_box.cfg";
 
@@ -378,7 +379,8 @@ sub get_input {
 			'user=s'	=> \$user,
 			'box=s{,}'	=> \@boxes,
 			'help|h|?'	=> \$help,
-			'all'		=> \$all)
+			'all'		=> \$all,
+			'debug'		=> \$debug)
 	 or pod2usage(2);
  	pod2usage(1) if $help;
 	pod2usage(-exitval => 0, -verbose => 2) if $man;
