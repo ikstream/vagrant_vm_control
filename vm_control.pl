@@ -357,6 +357,7 @@ sub help {
 	print "\t--user <username> \tmonitor Vagrant boxes of this user\n";
 	print "\t--box <vagrant_id>... \tmonitor the Vagrant Boxes with theses IDs\n";
 	print "\t--help | --h \tshow this help\n";
+	print "\t--debug \t show debug output\n";
 	print "\n";
 }
 
