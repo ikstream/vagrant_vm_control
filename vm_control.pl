@@ -293,7 +293,7 @@ sub check_home_directory {
 #@user write vagrant boxes of this user to files
 sub write_boxes {
 	my $user = $_[0];
-	my $all;
+	my $all = 0;
 	my @boxes;
 
 	if ($_[2]) {
