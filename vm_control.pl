@@ -113,12 +113,12 @@ sub create_units {
 sub job_control {
 	my ($vm, $job) = @_;
 	my $home = File::HomeDir->my_home;
-	my $log_file = $home ."/.vm_control/$vm" .".log";
+	my $log_file = $home ."/.config/vm_control/$vm" .".log";
 	my $date = localtime();
 
-	if (! -f $home ."/.vm_control/") {
+	if (! -f $home ."/.config/vm_control/") {
 		#TODO: replace so user owns it
-		mkdir "$home/.vm_control/", 0755;
+		mkdir "$home/.config/vm_control/", 0755;
 	}
 
 	open(my $ID_LOG, '>>', "$log_file")
@@ -138,8 +138,8 @@ sub start_vms {
 	my $forks;
 	my $home_dir = File::HomeDir->users_home("$user");
 
-	open(my $BOX_CFG, "<", "$home_dir/.vm_control/$user" ."_box.cfg")
-	 or die "Could not open $home_dir/.vm_control/$user" ."_box.cfgi: $!\n";
+	open(my $BOX_CFG, "<", "$home_dir/.config/vm_control/$user" ."_box.cfg")
+	 or die "Could not open $home_dir/.config/vm_control/$user" ."_box.cfgi: $!\n";
 
 	while (<$BOX_CFG>) {
 		push(@vms,$_);
@@ -195,8 +195,8 @@ sub stop_vms {
 	}
 
 	#check if box should be suspended or halted
-	open(my $CFG_FILE, '<', "$home_dir/.vm_control/$user" ."_box.cfg")
-	 or die "Could not open $home_dir/.vm_control/$user" ."_box.cfg";
+	open(my $CFG_FILE, '<', "$home_dir/.config/vm_control/$user" ."_box.cfg")
+	 or die "Could not open $home_dir/.config/vm_control/$user" ."_box.cfg";
 	for my $box_id (@ids) {
 		my $match = 0;
 		while(<$CFG_FILE>) {
@@ -282,7 +282,7 @@ sub write_user {
 #@user: check home directory of this user
 sub check_home_directory {
 	my $user = shift;
-	my $user_dir = File::HomeDir->users_home("$user") ."/.vm_control";
+	my $user_dir = File::HomeDir->users_home("$user") ."/.config/vm_control";
 
 	if (! -d $user_dir) {
 		my $ret = qx{"su" "-c" "mkdir -m755 $user_dir ; touch $user_dir/config" "$user"}
@@ -304,7 +304,7 @@ sub write_boxes {
 	}
 	print "in write boxes user: $user, all: $all, boxes: @boxes\n" if ($debug);
 	my $home_dir = File::HomeDir->users_home("$user");
-	my $file_name = "$home_dir/.vm_control/$user" ."_box.cfg";
+	my $file_name = "$home_dir/.config/vm_control/$user" ."_box.cfg";
 
 	&check_home_directory($user);
 	if ($all) {
