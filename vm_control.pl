@@ -138,8 +138,8 @@ sub start_vms {
 	my $forks;
 	my $home_dir = File::HomeDir->users_home("$user");
 
-	open(my $BOX_CFG, "<", "$home_dir/.config/vm_control/$user" ."_box.cfg")
-	 or die "Could not open $home_dir/.config/vm_control/$user" ."_box.cfgi: $!\n";
+	open(my $BOX_CFG, "<", "$home_dir/.config/vm_control/box.cfg")
+	 or die "Could not open $home_dir/.config/vm_control/box.cfg: $!\n";
 
 	while (<$BOX_CFG>) {
 		push(@vms,$_);
@@ -195,8 +195,8 @@ sub stop_vms {
 	}
 
 	#check if box should be suspended or halted
-	open(my $CFG_FILE, '<', "$home_dir/.config/vm_control/$user" ."_box.cfg")
-	 or die "Could not open $home_dir/.config/vm_control/$user" ."_box.cfg";
+	open(my $CFG_FILE, '<', "$home_dir/.config/vm_control/box.cfg")
+	 or die "Could not open $home_dir/.config/vm_control/box.cfg";
 	for my $box_id (@ids) {
 		my $match = 0;
 		while(<$CFG_FILE>) {
@@ -285,7 +285,7 @@ sub check_home_directory {
 	my $user_dir = File::HomeDir->users_home("$user") ."/.config/vm_control";
 
 	if (! -d $user_dir) {
-		my $ret = qx{"su" "-c" "mkdir -m755 $user_dir ; touch $user_dir/config" "$user"}
+		my $ret = qx{"su" "-c" "mkdir -m755 $user_dir ; touch $user_dir/box.cfg" "$user"}
 	}
 }
 
@@ -304,7 +304,7 @@ sub write_boxes {
 	}
 	print "in write boxes user: $user, all: $all, boxes: @boxes\n" if ($debug);
 	my $home_dir = File::HomeDir->users_home("$user");
-	my $file_name = "$home_dir/.config/vm_control/$user" ."_box.cfg";
+	my $file_name = "$home_dir/.config/vm_control/box.cfg";
 
 	&check_home_directory($user);
 	if ($all) {
