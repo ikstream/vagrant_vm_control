@@ -36,7 +36,7 @@ use File::HomeDir;
 use Getopt::Long;
 use Pod::Usage;
 
-my $cfg_dir = '/etc/vm_control/';
+my $cfg_dir = '/etc/vm_control';
 my $debug = 0;
 
 #enable and start systemd units for each user
@@ -130,17 +130,28 @@ sub job_control {
 
 #start all tracked vagrant boxes of a user
 #@user: vagrant boxes of this user will be started
-#TODO: check if user is in user file to avoid exploits
 sub start_vms {
 	my $user = shift;
 	my @vms;
-	my $forks;
+	my $forks, my $check = 0;
+
+	open(my $user_config, "<:encoding(UTF-8)", "$cfg_dir/user_cfg")
+	 or die "Could not open $cfg_dir/user_cfg: $!\n";
+	while(<$user_config>) {
+		if($_ eq $user) {
+			$check = 1;
+		}
+	}
+	close($user_config);
+	if (!$check) {
+		print "Could not find user $user in $cfg_dir/user_cfg\n";
+		return 1;
+	}
+
 	my $home_dir = File::HomeDir->users_home("$user");
 	my $user_dir = "$home_dir/.config/vm_control/";
-
 	open(my $BOX_CFG, "<", "$user_dir/box.cfg")
 	 or die "Could not open $user_dir/box.cfg: $!\n";
-
 	while (<$BOX_CFG>) {
 		push(@vms,$_);
 	}
@@ -249,7 +260,7 @@ sub get_boxes {
 #@user: write this user to config
 sub write_user {
 	my $user = shift;
-	my $file_name = "$cfg_dir" ."user_cfg";
+	my $file_name = "$cfg_dir" ."/user_cfg";
 
 	print "user in write_user(): $user\n" if ($debug);
 
@@ -421,7 +432,7 @@ sub get_input {
 
 	print "user: $user\n" if($debug);
 	if ($start_user) {
-		&start_boxes($start_user);
+		&start_vms($start_user);
 	} elsif ($stop_user) {
 		&stop_boxes($stop_user);
 	} elsif ($user) {
