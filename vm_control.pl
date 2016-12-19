@@ -26,9 +26,7 @@
 #TODO: filter input to do start and stop jobs
 #TODO: check if box is already in file
 #TODO: Fork on start and shutdown
-#TODO: write vagrant outpu to individual logfiles
 #TODO: print debug output to logfile or journalctl
-#TODO: rewrite box storage to keep boxes in own home dir
 #TODO: allow user to add boxes instead of only root
 #TODO: simplify
 use strict;
@@ -131,8 +129,8 @@ sub job_control {
 }
 
 #start all tracked vagrant boxes of a user
-#@vm_user: vagrant boxes of this user will be started
-#TODO: check if vm_user is in user file to avoid exploits
+#@user: vagrant boxes of this user will be started
+#TODO: check if user is in user file to avoid exploits
 sub start_vms {
 	my $user = shift;
 	my @vms;
@@ -169,7 +167,7 @@ sub start_vms {
 
 #suspend all boxes of a user that are in the list
 #if they are not in the list halt them
-#@vm_user: vagrant boxes of this user will be stopped
+#@user: vagrant boxes of this user will be stopped
 sub stop_vms {
 	my $user = shift;
 	my @vgs_line, my @ids;
@@ -335,6 +333,9 @@ sub write_boxes {
 }
 
 #check if config directory exists
+#@user: user to watch
+#@all: is set if all boxes should be monitored
+#@boxes: boxes to be monitored
 sub check_directory {
 	my $user = $_[0];
 	my $all = $_[1];
