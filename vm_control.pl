@@ -112,13 +112,14 @@ sub create_units {
 #@job: command to run. should be halt/suspend/up
 sub job_control {
 	my ($vm, $job) = @_;
-	my $home = File::HomeDir->my_home;
-	my $log_file = $home ."/.config/vm_control/$vm" .".log";
+	my $home_dir = File::HomeDir->my_home;
+	my $user_dir = "$home_dir/.config/vm_control/";
+	my $log_file = "$user_dir/$vm" .".log";
 	my $date = localtime();
+	my $user = $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
 
-	if (! -f $home ."/.config/vm_control/") {
-		#TODO: replace so user owns it
-		mkdir "$home/.config/vm_control/", 0755;
+	if (! -f "$user_dir") {
+		my $ret = qx{"su" "-c" "mkdir -m755 $user_dir" "$user"};
 	}
 
 	open(my $ID_LOG, '>>', "$log_file")
@@ -137,9 +138,10 @@ sub start_vms {
 	my @vms;
 	my $forks;
 	my $home_dir = File::HomeDir->users_home("$user");
+	my $user_dir = "$home_dir/.config/vm_control/";
 
-	open(my $BOX_CFG, "<", "$home_dir/.config/vm_control/box.cfg")
-	 or die "Could not open $home_dir/.config/vm_control/box.cfg: $!\n";
+	open(my $BOX_CFG, "<", "$user_dir/box.cfg")
+	 or die "Could not open $user_dir/box.cfg: $!\n";
 
 	while (<$BOX_CFG>) {
 		push(@vms,$_);
@@ -178,6 +180,7 @@ sub stop_vms {
 	my $datetime;
 	my @suspend, my @halt;
 	my $home_dir = File::HomeDir->users_home("$user");
+	my $user_dir = "$home_dir/.config/vm_control";
 
 	print"stopping boxes of $user\n";
 	open(my $VGS, "vagrant global-status |")
@@ -195,8 +198,8 @@ sub stop_vms {
 	}
 
 	#check if box should be suspended or halted
-	open(my $CFG_FILE, '<', "$home_dir/.config/vm_control/box.cfg")
-	 or die "Could not open $home_dir/.config/vm_control/box.cfg";
+	open(my $CFG_FILE, '<', "$user_dir/box.cfg")
+	 or die "Could not open $user_dir/box.cfg";
 	for my $box_id (@ids) {
 		my $match = 0;
 		while(<$CFG_FILE>) {
@@ -236,6 +239,7 @@ sub stop_vms {
 	}
 }
 
+#TODO: put logic for box reading in here from stop_vms
 sub get_boxes {
 	#get all boxes to stop
 	#put them in halt and suspend array
@@ -285,7 +289,7 @@ sub check_home_directory {
 	my $user_dir = File::HomeDir->users_home("$user") ."/.config/vm_control";
 
 	if (! -d $user_dir) {
-		my $ret = qx{"su" "-c" "mkdir -m755 $user_dir ; touch $user_dir/box.cfg" "$user"}
+		my $ret = qx{"su" "-c" "mkdir -m755 $user_dir ; touch $user_dir/box.cfg" "$user"};
 	}
 }
 
@@ -383,7 +387,7 @@ sub get_input {
 			'all'		=> \$all,
 			'debug'		=> \$debug)
 	 or pod2usage(2);
- 	pod2usage(1) if $help;
+	pod2usage(1) if $help;
 	pod2usage(-exitval => 0, -verbose => 2) if $man;
 
 	print "user: $user\n";
