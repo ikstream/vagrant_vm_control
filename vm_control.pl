@@ -291,12 +291,38 @@ sub check_home_directory {
 	}
 }
 
+#check if box already exists in config file
+#@file_name: path to config file
+#@boxes: list of boxes to check
+sub check_box {
+	my $file_name = $_[0];
+	my @boxes = @{$_[1]};
+	open( my $cfg_file, '<:encoding(UTF-8)', $file_name)
+	 or die "Could not open file $file_name $!\n";
+	while(my $stored_box = <$cfg_file>) {
+		if (!$stored_box) {
+			last;
+		}
+		chomp($stored_box);
+		for my $box (@boxes) {
+			if ("$box" eq "$stored_box") {
+				print "Box $box already in $file_name\n";
+				close($cfg_file);
+				return 1;
+			}
+		}
+	}
+	close($cfg_file);
+	return 0;
+}
+
 #write boxes for a user to its config file
 #@user write vagrant boxes of this user to files
 sub write_boxes {
 	my $user = $_[0];
 	my $all = 0;
 	my @boxes;
+	my $ret;
 
 	if ($_[2]) {
 		$all = $_[1];
@@ -322,13 +348,15 @@ sub write_boxes {
 		}
 		close($CFG_FILE);
 	} else {
-		#TODO: check if box is already in config
-		open( my $CFG_FILE, '>>', $file_name)
-		 or die "Could not open file $file_name $!\n";
-		for my $box (@boxes) {
-			print $CFG_FILE $box . "\n";
+		$ret = &check_box($file_name, \@boxes);
+		if (!$ret) {
+			open( my $CFG_FILE, '>>', $file_name)
+			 or die "Could not open file $file_name $!\n";
+			for my $box (@boxes) {
+				print $CFG_FILE $box . "\n";
+			}
+			close($CFG_FILE);
 		}
-		close($CFG_FILE);
 	}
 }
 
@@ -391,7 +419,7 @@ sub get_input {
 	pod2usage(1) if $help;
 	pod2usage(-exitval => 0, -verbose => 2) if $man;
 
-	print "user: $user\n";
+	print "user: $user\n" if($debug);
 	if ($start_user) {
 		&start_boxes($start_user);
 	} elsif ($stop_user) {
