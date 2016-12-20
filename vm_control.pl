@@ -128,6 +128,27 @@ sub job_control {
 	system("vagrant $job $vm 1>>$log_file");
 }
 
+#check is user exists in cfg file
+#@use: user to be checked
+#exits with 5 if user not found
+sub check_user {
+	my $user = shift;
+	my $found = 0;
+
+	open(my $user_config, "<:encoding(UTF-8)", "$cfg_dir/user_cfg")
+	 or die "Could not open $cfg_dir/user_cfg: $!\n";
+	while(<$user_config>) {
+		if($_ eq $user) {
+			$found = 1;
+		}
+	}
+	close($user_config);
+	if (!$found) {
+		print "Could not find user $user in $cfg_dir/user_cfg\n";
+		exit 5;
+	}
+}
+
 #start all tracked vagrant boxes of a user
 #@user: vagrant boxes of this user will be started
 sub start_vms {
@@ -135,18 +156,7 @@ sub start_vms {
 	my @vms;
 	my $forks, my $check = 0;
 
-	open(my $user_config, "<:encoding(UTF-8)", "$cfg_dir/user_cfg")
-	 or die "Could not open $cfg_dir/user_cfg: $!\n";
-	while(<$user_config>) {
-		if($_ eq $user) {
-			$check = 1;
-		}
-	}
-	close($user_config);
-	if (!$check) {
-		print "Could not find user $user in $cfg_dir/user_cfg\n";
-		return 1;
-	}
+	&check_user($user);
 
 	my $home_dir = File::HomeDir->users_home("$user");
 	my $user_dir = "$home_dir/.config/vm_control/";
@@ -190,6 +200,8 @@ sub stop_vms {
 	my @suspend, my @halt;
 	my $home_dir = File::HomeDir->users_home("$user");
 	my $user_dir = "$home_dir/.config/vm_control";
+
+	&check_user($user);
 
 	print"stopping boxes of $user\n";
 	open(my $VGS, "vagrant global-status |")
