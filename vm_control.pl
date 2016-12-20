@@ -270,6 +270,7 @@ sub get_boxes {
 #A List of all users monitored by this program will be
 #created.
 #@user: write this user to config
+#exits with 4 if file could not be created
 sub write_user {
 	my $user = shift;
 	my $file_name = "$cfg_dir" ."/user_cfg";
@@ -281,7 +282,8 @@ sub write_user {
 		my $ret = `touch $file_name`;
 		if ($ret) {
 			print "touch returned $ret\n";
-			die "something went wrong\n";
+			print "something went wrong\n";
+			exit(4);
 		}
 	}
 	open(my $USR_CFG, '<:encoding(UTF-8)', "$file_name")
