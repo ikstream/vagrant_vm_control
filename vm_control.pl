@@ -47,9 +47,9 @@ sub enable_unit {
 	my $ret = `systemctl enable $unit`;
 	print "something went wrong: systemd returned $ret" if ($ret);
 
-#	print "starting systemd unit $unit\n";
-#	$ret = `systemctl start $unit`;
-#	print "something went wrong: systemd returned $ret" if ($ret);
+	print "starting systemd unit $unit\n";
+	$ret = `systemctl start $unit`;
+	print "something went wrong: systemd returned $ret" if ($ret);
 }
 
 #create systemd units for each user monitored
@@ -261,6 +261,8 @@ sub stop_vms {
 }
 
 #TODO: put logic for box reading in here from stop_vms
+#Get all vagrant boxes of a certain user
+#@user: get all boxes of this user
 sub get_boxes {
 	#get all boxes to stop
 	#put them in halt and suspend array
