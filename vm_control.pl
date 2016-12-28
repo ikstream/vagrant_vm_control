@@ -25,7 +25,6 @@
 #TODO: provide option to add all vagrant boxes of a user
 #TODO: filter input to do start and stop jobs
 #TODO: check if box is already in file
-#TODO: Fork on start and shutdown
 #TODO: print debug output to logfile or journalctl
 #TODO: allow user to add boxes instead of only root
 #TODO: simplify
@@ -47,9 +46,9 @@ sub enable_unit {
 	my $ret = `systemctl enable $unit`;
 	print "something went wrong: systemd returned $ret" if ($ret);
 
-#	print "starting systemd unit $unit\n";
-#	$ret = `systemctl start $unit`;
-#	print "something went wrong: systemd returned $ret" if ($ret);
+	print "starting systemd unit $unit\n";
+	$ret = `systemctl start $unit`;
+	print "something went wrong: systemd returned $ret" if ($ret);
 }
 
 #create systemd units for each user monitored
@@ -73,7 +72,7 @@ sub create_units {
 	print $START_FILE "User=$user\n";
 	print $START_FILE "Type=forking\n";
 	print $START_FILE "RemainAfterExit=yes\n";
-	print $START_FILE "ExecStart=/usr/local/bin/vm_conrol.pl start $user\n";
+	print $START_FILE "ExecStart=/usr/local/bin/vm_control.pl --start $user\n";
 	print $START_FILE "\n";
 	print $START_FILE "[Install]\n";
 	print $START_FILE "WantedBy=multi-user.target\n";
@@ -96,7 +95,7 @@ sub create_units {
 	print $STOP_FILE "User=$user\n";
 	print $STOP_FILE "Type=forking\n";
 	print $STOP_FILE "RemainAfterExit=yes\n";
-	print $STOP_FILE "ExecStart=/usr/local/bin/vm_control.pl stop $user\n";
+	print $STOP_FILE "ExecStart=/usr/local/bin/vm_control.pl --stop $user\n";
 	print $STOP_FILE "\n";
 	print $STOP_FILE "[Install]\n";
 	print $STOP_FILE "WantedBy=mutli-user.target\n";
@@ -138,8 +137,10 @@ sub check_user {
 	open(my $user_config, "<:encoding(UTF-8)", "$cfg_dir/user_cfg")
 	 or die "Could not open $cfg_dir/user_cfg: $!\n";
 	while(<$user_config>) {
-		if($_ eq $user) {
+		chomp;
+		if($_ eq "$user") {
 			$found = 1;
+			last;
 		}
 	}
 	close($user_config);
@@ -217,6 +218,7 @@ sub stop_vms {
 	 or die "Failed to run vagrant global-status: $!\n";
 
 	#get state and id of vagrant boxes
+	#TODO: check if id string could contain id
 	 while(<$VGS>) {
 		next if /^\-*$/ || /id/;
 		last if /^$/ || /^\s*$/;
@@ -460,7 +462,7 @@ sub get_input {
 	if ($start_user) {
 		&start_vms($start_user);
 	} elsif ($stop_user) {
-		&stop_boxes($stop_user);
+		&stop_vms($stop_user);
 	} elsif ($user) {
 		&check_directory($user, $all, \@boxes);
 	} elsif ($help) {
