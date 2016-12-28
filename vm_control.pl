@@ -47,9 +47,9 @@ sub enable_unit {
 	my $ret = `systemctl enable $unit`;
 	print "something went wrong: systemd returned $ret" if ($ret);
 
-	print "starting systemd unit $unit\n";
-	$ret = `systemctl start $unit`;
-	print "something went wrong: systemd returned $ret" if ($ret);
+#	print "starting systemd unit $unit\n";
+#	$ret = `systemctl start $unit`;
+#	print "something went wrong: systemd returned $ret" if ($ret);
 }
 
 #create systemd units for each user monitored
@@ -64,7 +64,7 @@ sub create_units {
 	open(my $START_FILE, '>', "$sys_dir" ."$start_file")
 	 or die "could not open $sys_dir" ."$start_file: $!\n";
 
-	print $START_FILE "[UNIT]\n";
+	print $START_FILE "[Unit]\n";
 	print $START_FILE "Description=Start $user Vagrant Boxes on start\n";
 	print $START_FILE "Requires=network.target\n";
 	print $START_FILE "After=network.target\n";
@@ -96,7 +96,7 @@ sub create_units {
 	print $STOP_FILE "User=$user\n";
 	print $STOP_FILE "Type=forking\n";
 	print $STOP_FILE "RemainAfterExit=yes\n";
-	print $STOP_FILE "ExecStop=/usr/local/bin/vm_control.pl stop $user\n";
+	print $STOP_FILE "ExecStart=/usr/local/bin/vm_control.pl stop $user\n";
 	print $STOP_FILE "\n";
 	print $STOP_FILE "[Install]\n";
 	print $STOP_FILE "WantedBy=mutli-user.target\n";
@@ -149,23 +149,33 @@ sub check_user {
 	}
 }
 
+#read monitored boxes from file
+#@file: file to read boxes from
+#returns list of boxes
+sub read_boxes {
+	my $file = shift;
+	my @vms;
+
+	open(my $BOX_CFG, "<", "$file")
+	 or die "Could not open $file: $!\n";
+	while (<$BOX_CFG>) {
+		push(@vms,$_);
+	}
+	return @vms;
+}
+
 #start all tracked vagrant boxes of a user
 #@user: vagrant boxes of this user will be started
 sub start_vms {
 	my $user = shift;
-	my @vms;
 	my $forks, my $check = 0;
 
 	&check_user($user);
 
 	my $home_dir = File::HomeDir->users_home("$user");
 	my $user_dir = "$home_dir/.config/vm_control/";
-	open(my $BOX_CFG, "<", "$user_dir/box.cfg")
-	 or die "Could not open $user_dir/box.cfg: $!\n";
-	while (<$BOX_CFG>) {
-		push(@vms,$_);
-	}
 
+	my @vms = &read_boxes("$user_dir/box.cfg");
 	for my $vm (@vms) {
 		my $pid = fork();
 
@@ -196,7 +206,6 @@ sub stop_vms {
 	my $i = 0;
 	my $state = 3;
 	my %vms;
-	my $datetime;
 	my @suspend, my @halt;
 	my $home_dir = File::HomeDir->users_home("$user");
 	my $user_dir = "$home_dir/.config/vm_control";
@@ -444,16 +453,18 @@ sub get_input {
 			'all'		=> \$all,
 			'debug'		=> \$debug)
 	 or pod2usage(2);
-	pod2usage(1) if $help;
-	pod2usage(-exitval => 0, -verbose => 2) if $man;
+#	pod2usage(1) if $help;
+#	pod2usage(-exitval => 0, -verbose => 2) if $man;
 
-	print "user: $user\n" if($debug);
+	print "user: ${user} help: $help\n" if($debug);
 	if ($start_user) {
 		&start_vms($start_user);
 	} elsif ($stop_user) {
 		&stop_boxes($stop_user);
 	} elsif ($user) {
 		&check_directory($user, $all, \@boxes);
+	} elsif ($help) {
+		&help();
 	} else {
 		&help();
 	}
