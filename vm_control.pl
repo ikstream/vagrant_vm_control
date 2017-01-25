@@ -34,6 +34,7 @@ use warnings;
 use File::HomeDir;
 use Getopt::Long;
 use Pod::Usage;
+use Tie::File;
 
 my $cfg_dir = '/etc/vm_control';
 my $debug = 0;
@@ -46,9 +47,9 @@ sub enable_unit {
 	my $ret = `systemctl enable $unit`;
 	print "something went wrong: systemd returned $ret" if ($ret);
 
-	print "starting systemd unit $unit\n";
-	$ret = `systemctl start $unit`;
-	print "something went wrong: systemd returned $ret" if ($ret);
+#	print "starting systemd unit $unit\n";
+#	$ret = `systemctl start $unit`;
+#	print "something went wrong: systemd returned $ret" if ($ret);
 }
 
 #create systemd units for each user monitored
@@ -174,7 +175,7 @@ sub start_vms {
 	&check_user($user);
 
 	my $home_dir = File::HomeDir->users_home("$user");
-	my $user_dir = "$home_dir/.config/vm_control/";
+	my $user_dir = "$home_dir/.config/vm_control";
 
 	my @vms = &read_boxes("$user_dir/box.cfg");
 	for my $vm (@vms) {
@@ -354,6 +355,28 @@ sub check_box {
 	return 0;
 }
 
+#remove boxes of a user from monitoring
+#@user: remove box of this user
+#@rm_boxes: box(es) to remove from monitoring
+sub remove_boxes {
+	my $user = $_[0];
+	my @boxes = @{$_[1]};
+
+	my $home_dir = File::HomeDir->users_home("$user");
+	my $file = "$home_dir/.config/vm_control/box.cfg";
+
+	#check if user is monitored
+	&check_user($user);
+	foreach my $box (@boxes) {
+		my $k_box = 0;
+		tie my @known_boxes, 'Tie::File', $file or die "failed to tie: $!\n";
+		$k_box++ until "$known_boxes[$k_box]" eq "$box";
+		splice(@known_boxes, $k_box, 1);
+		untie @known_boxes or die "failed to untie: $!\n";
+	}
+	exit;
+}
+
 #write boxes for a user to its config file
 #@user write vagrant boxes of this user to files
 sub write_boxes {
@@ -445,12 +468,13 @@ sub get_input {
 	my $man = 0;
 	my $start_user, my $stop_user, my $user;
 	my $all = 0;
-	my @boxes;
+	my @boxes, my @rm_boxes;
 
 	GetOptions(	'start=s'	=> \$start_user,
 			'stop=s'	=> \$stop_user,
 			'user=s'	=> \$user,
 			'box=s{,}'	=> \@boxes,
+			'rmb=s{,}'	=> \@rm_boxes,
 			'help|h|?'	=> \$help,
 			'all'		=> \$all,
 			'debug'		=> \$debug)
@@ -458,19 +482,23 @@ sub get_input {
 #	pod2usage(1) if $help;
 #	pod2usage(-exitval => 0, -verbose => 2) if $man;
 
-	print "user: ${user} help: $help\n" if($debug);
+	print "user: ${user} help: $help\n" if ($debug);
+	print "rmb: @{rm_boxes} \n" if ($debug);
 	if ($start_user) {
 		&start_vms($start_user);
 	} elsif ($stop_user) {
 		&stop_vms($stop_user);
-	} elsif ($user) {
+	} elsif (@boxes && $user) {
 		&check_directory($user, $all, \@boxes);
+	} elsif (@rm_boxes && $user) {
+		&remove_boxes($user, \@rm_boxes);
 	} elsif ($help) {
 		&help();
 	} else {
 		&help();
 	}
 }
+
 &get_input(@ARGV);
 
 =head1 NAME
