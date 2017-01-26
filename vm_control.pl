@@ -448,9 +448,10 @@ sub help {
 	print "Usage [option] <arguments> {[option] <argument>}\n";
 	print "\n";
 	print "Options:\n";
-	print "\t--user <username> \tmonitor Vagrant boxes of this user\n";
-	print "\t--box <vagrant_id>... \tmonitor the Vagrant Boxes with theses IDs\n";
-	print "\t--all \t\t\tpass with user to add all boxes of a single user\n";
+	print "\t--user <username> \tmonitor vagrant boxes of this user\n";
+	print "\t--box <vagrant_id>... \tmonitor the vagrant Boxes with the given id\n";
+#	print "\t--all \t\t\tpass with user to add all boxes of a single user\n";
+	print "\t--rmb <vagrant_id>... \tremove vagrant box from monitoring\n";
 	print "\t--help | --h \t\tshow this help\n";
 	print "\t--debug \t\tshow debug output\n";
 	print "\n";
@@ -468,7 +469,7 @@ sub get_input {
 	my $man = 0;
 	my $start_user, my $stop_user, my $user;
 	my $all = 0;
-	my @boxes, my @rm_boxes;
+	my (@boxes, @rm_boxes, @rm_user);
 
 	GetOptions(	'start=s'	=> \$start_user,
 			'stop=s'	=> \$stop_user,
@@ -492,6 +493,8 @@ sub get_input {
 		&check_directory($user, $all, \@boxes);
 	} elsif (@rm_boxes && $user) {
 		&remove_boxes($user, \@rm_boxes);
+	} elsif (@rm_user) {
+		&remove_user(\@rm_user);
 	} elsif ($help) {
 		&help();
 	} else {
