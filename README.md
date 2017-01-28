@@ -14,6 +14,8 @@ you can add Virtual Machines for the user in the same step
 to remove a box from a user profile use
 > \# vm_control.pl --user username --rmb box_id ...
 
+to remove a user
+> \# vm_control.pl --rmu username
 The Following Modules are needed:
 > File::HomeDir
 
