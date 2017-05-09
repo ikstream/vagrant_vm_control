@@ -117,7 +117,7 @@ sub job_control {
 	my $user = $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
 
 	if (! -f "$user_dir") {
-		my $ret = qx{"su" "-c" "mkdir -m755 $user_dir" "$user"};
+		my $ret = qx{"mkdir -m755 $user_dir" "$user"};
 	}
 
 	open(my $ID_LOG, '>>', "$log_file")
@@ -170,7 +170,8 @@ sub read_boxes {
 #@user: vagrant boxes of this user will be started
 sub start_vms {
 	my $user = shift;
-	my $forks, my $check = 0;
+	my $forks = 0;
+	my $check = 0;
 
 	&check_user($user);
 
